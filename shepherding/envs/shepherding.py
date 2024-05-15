@@ -4,7 +4,7 @@ import numpy as np
 import pygame
 
 import gymnasium as gym
-from gymnasium import spaces
+from gymnasium import spaces, Wrapper
 
 
 class ShepherdingEnv(gym.Env):
@@ -58,8 +58,8 @@ class ShepherdingEnv(gym.Env):
         self.render_mode = render_mode
 
         # Define observation space
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf,
-                                            shape=(self.num_herders + self.num_targets, 2), dtype=np.float64)
+        self.observation_space = spaces.Box(low=-self.region_length, high=self.region_length,
+                                            shape=(self.num_herders + self.num_targets, 2,), dtype=np.float32)
         # Define action space
         self.action_space = spaces.Box(low=-self.herder_max_vel, high=self.herder_max_vel, shape=(self.num_herders, 2))
 
@@ -107,20 +107,21 @@ class ShepherdingEnv(gym.Env):
         self.target_pos_new = self.target_pos + \
                               np.sqrt(2 * self.noise_strength * self.dt) * \
                               self.np_random.normal(size=(self.num_targets, 2)) + \
-                              self._repulsion(self.target_pos, self.herder_pos) * self.dt
+                              self._repulsion() * self.dt
         self.target_pos_new = np.clip(self.target_pos_new, -self.region_length / 2, self.region_length / 2)
-
-        # Compute rewards and check for termination
-        # Calculate target radii
-        target_radii = np.linalg.norm(self.target_pos, axis=1)
-        terminated = self._check_termination(target_radii)
-        reward = self._compute_reward(target_radii, k_t=1)
-        truncated = False
-        info = self._get_info()
 
         # Update state
         self.herder_pos = self.herder_pos_new
         self.target_pos = self.target_pos_new
+
+        # Compute rewards and check for termination
+        # Calculate target radii
+        target_radii = np.linalg.norm(self.target_pos, axis=1)
+        # terminated = self._check_termination(target_radii)
+        terminated = False
+        reward = self._compute_reward(target_radii, k_t=1)
+        truncated = False
+        info = self._get_info()
 
         if self.render_mode == "human":
             self._render_frame()
@@ -137,28 +138,36 @@ class ShepherdingEnv(gym.Env):
         distance_from_goal = target_radii - self.rho_g
         # Compute reward
         reward_vector = np.where(distance_from_goal < 0, distance_from_goal - k_t, distance_from_goal)
-        reward = np.sum(reward_vector)
+        reward = -np.sum(reward_vector)
         return reward
 
-    def _repulsion(self, target_pos, herder_pos):
-        # Compute the repulsion force of herders on targets
-        repulsion = np.zeros((len(target_pos), 2))  # Initialize repulsion array
 
-        for i, target_pos_i in enumerate(target_pos):
-            repulsion_i = np.zeros(2)
-            distances = np.linalg.norm(herder_pos - target_pos_i, axis=1)
-            for herder_pos_i, distance in zip(herder_pos, distances):
-                if distance <= self.lmbda:
-                    repulsion_i += (self.lmbda - distance) * (herder_pos_i - target_pos_i) / distance
-            # Assign repulsion force to the corresponding row of the output array
-            repulsion[i] = -repulsion_i
+    def _repulsion(self):
+        # Compute differences between herder positions and target positions
+        differences = self.herder_pos[:, np.newaxis, :] - self.target_pos[np.newaxis, :, :]
+
+        # Compute distances between each herder and each target
+        distances = np.linalg.norm(differences, axis=2)
+
+        # Determine which herders are within the lambda range of each target
+        nearby_agents = distances < self.lmbda
+
+        # Mask differences to consider only nearby herders
+        nearby_differences = differences * nearby_agents[:, :, np.newaxis]
+
+        # Compute nearby unit vectors
+        nearby_unit_vector = np.where(distances[:, :, np.newaxis] == 0, 0,
+                                      nearby_differences / np.maximum(distances[:, :, np.newaxis], 1e-6))
+
+        # Compute repulsion for each target
+        repulsion = - self.beta * np.sum((self.lmbda - distances)[:, :, np.newaxis] * nearby_unit_vector, axis=0)
 
         return repulsion
 
     def _get_obs(self):
         # Get observation of herders and targets positions and velocities
         # state = np.concatenate((self.herder_pos.flatten(), self.target_pos.flatten()), dtype=np.float64)
-        state = np.concatenate((self.herder_pos, self.target_pos))
+        state = np.concatenate((self.herder_pos, self.target_pos), dtype=np.float32)
         return state
 
     def _get_info(self):
@@ -195,7 +204,7 @@ class ShepherdingEnv(gym.Env):
         pygame.draw.circle(self.window, (0, 255, 0), self._rescale_position((0, 0)), int(self.rho_g * 10), 2)
 
         pygame.display.flip()
-        self.clock.tick(30)
+        self.clock.tick(20)
 
     def _rescale_position(self, pos):
         return int(pos[0] * self.window_size / self.region_length) + self.window_size // 2, int(
@@ -205,3 +214,5 @@ class ShepherdingEnv(gym.Env):
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()
+
+

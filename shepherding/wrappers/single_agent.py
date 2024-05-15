@@ -19,14 +19,37 @@ class SingleAgent(Wrapper):
         return obs, reward, terminated, truncated, info
 
     def _compute_reward(self):
-        reward = - self.k_1 * np.linalg.norm(self.unwrapped.target_pos - self.unwrapped.herder_pos) \
-                    - self.k_2 * np.linalg.norm(self.unwrapped.target_pos) \
-                    - self.k_3 * self._compute_r_term(self.unwrapped.target_pos) \
-                    + self.k_4 * self._compute_r_term(self.unwrapped.herder_pos)
+        # Precompute the positions
+        target_pos = self.unwrapped.target_pos
+        herder_pos = self.unwrapped.herder_pos
+
+        # Precompute distances
+        target_distance = np.linalg.norm(target_pos)
+        herder_distance = np.linalg.norm(herder_pos)
+
+        # Precompute the difference vector
+        diff_vector = target_pos - herder_pos
+        diff_distance = np.linalg.norm(diff_vector)
+
+        # Compute the reward components
+        reward = (
+                - self.k_1 * diff_distance
+                - self.k_2 * target_distance
+                - self.k_3 * self._compute_r_term(target_distance)
+                + self.k_4 * self._compute_r_term(herder_distance)
+        )
+
         return reward
 
     def _compute_r_term(self, x):
-        return (1 / (1 - np.exp(-self.k_5 * (np.linalg.norm(x) - self.unwrapped.rho_g))) -1)
+        rho_g = self.unwrapped.rho_g
+        k_5 = self.k_5
+        exp_term = np.exp(-k_5 * (x - rho_g))
+
+        # Prevent division by zero or near-zero by adding a small epsilon
+        epsilon = 1e-10
+        return 1 / (1 - exp_term + epsilon) - 1
+
 
 
 

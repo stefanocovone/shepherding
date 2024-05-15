@@ -4,8 +4,5 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="jdk" jdkName="gymenv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="Shepherding" />
-    <orderEntry type="module" module-name="ProximalPolicyOptimization" />
-    <orderEntry type="module" module-name="DeepQNetwork" />
   </component>
 </module>

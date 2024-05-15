@@ -1,1 +1,1 @@
-shepherding_envs
+shepherding

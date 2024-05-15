@@ -1,10 +1,12 @@
 README.md
 setup.py
+shepherding/__init__.py
 shepherding.egg-info/PKG-INFO
 shepherding.egg-info/SOURCES.txt
 shepherding.egg-info/dependency_links.txt
 shepherding.egg-info/requires.txt
 shepherding.egg-info/top_level.txt
-shepherding_envs/__init__.py
-shepherding_envs/envs/shepherding.py
-shepherding_envs/wrappers/__init__.py
+shepherding/envs/__init__.py
+shepherding/envs/shepherding.py
+shepherding/wrappers/__init__.py
+shepherding/wrappers/sheperding_single_agent.py

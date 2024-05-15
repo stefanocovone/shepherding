@@ -2,9 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$USER_HOME$/Il mio Drive/Università/Magistrale/II anno/Thesis/Code/DeepQNetwork/.idea/DeepQNetwork.iml" filepath="$USER_HOME$/Il mio Drive/Università/Magistrale/II anno/Thesis/Code/DeepQNetwork/.idea/DeepQNetwork.iml" />
-      <module fileurl="file://$USER_HOME$/Il mio Drive/Università/Magistrale/II anno/Thesis/Code/ProximalPolicyOptimization/.idea/ProximalPolicyOptimization.iml" filepath="$USER_HOME$/Il mio Drive/Università/Magistrale/II anno/Thesis/Code/ProximalPolicyOptimization/.idea/ProximalPolicyOptimization.iml" />
-      <module fileurl="file://$USER_HOME$/Il mio Drive/Università/Magistrale/II anno/Thesis/Code/Shepherding/.idea/Shepherding.iml" filepath="$USER_HOME$/Il mio Drive/Università/Magistrale/II anno/Thesis/Code/Shepherding/.idea/Shepherding.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/shepherding.iml" filepath="$PROJECT_DIR$/.idea/shepherding.iml" />
     </modules>
   </component>

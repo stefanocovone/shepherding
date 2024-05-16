@@ -1,2 +1,2 @@
-from shepherding.wrappers.single_agent import SingleAgent
+from shepherding.wrappers.single_agent import SingleAgentReward
 from shepherding.wrappers.flatten_action import FlattenAction

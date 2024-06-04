@@ -8,36 +8,36 @@ from gymnasium import spaces, Wrapper
 
 
 class ShepherdingEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 20}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
     def __init__(self, render_mode: Optional[str] = None, parameters=None, compute_reward: bool = True):
         self.compute_reward = compute_reward
         self.parameters = {
             'num_targets': 4,
-            'target_max_vel': 1,
             'noise_strength': 1,
             'beta': 3,
             'lambda': 2.5,
             'num_herders': 2,
             'herder_max_vel': 8,
-            'xi': 500,
-            'region_length': 60,
+            'xi': 10,
+            'alpha': 5,
+            'region_length': 50,
             'max_steps': 2000,
             'dt': 0.05,
-            'rho_g': 5,
+            'rho_g': 10,
         }
 
         if parameters is not None:
             self.parameters.update(parameters)
 
         self.num_targets = self.parameters['num_targets']
-        self.target_max_vel = self.parameters['target_max_vel']
         self.noise_strength = self.parameters['noise_strength']
         self.beta = self.parameters['beta']
         self.lmbda = self.parameters['lambda']
         self.num_herders = self.parameters['num_herders']
         self.herder_max_vel = self.parameters['herder_max_vel']
         self.xi = self.parameters['xi']
+        self.alpha = self.parameters['alpha']
         self.region_length = self.parameters['region_length']
         self.max_steps = self.parameters['max_steps']
         self.dt = self.parameters['dt']
@@ -80,7 +80,7 @@ class ShepherdingEnv(gym.Env):
         self.herder_pos_new = np.clip(self.herder_pos + herder_vel * self.dt, -self.region_length / 2,
                                       self.region_length / 2)
 
-        noise = np.sqrt(2 * self.noise_strength * self.dt) * self.np_random.normal(size=(self.num_targets, 2))
+        noise = self.noise_strength * np.sqrt(self.dt) * self.np_random.normal(size=(self.num_targets, 2))
         repulsion = self._repulsion() * self.dt
         self.target_pos_new = np.clip(self.target_pos + noise + repulsion, -self.region_length / 2,
                                       self.region_length / 2)
@@ -123,10 +123,17 @@ class ShepherdingEnv(gym.Env):
         return {"num_herders": self.num_herders, "num_targets": self.num_targets}
 
     def _random_positions(self, num_agents):
-        return self.np_random.uniform(-self.region_length / 2, self.region_length / 2, size=(num_agents, 2))
+        radius = self.np_random.uniform(self.rho_g+1, self.region_length / 2, num_agents)
+        angle = self.np_random.uniform(0, 2 * np.pi, num_agents)
+        x = radius * np.cos(angle)
+        y = radius * np.sin(angle)
+        position = np.column_stack((x, y))
+        return position
 
     def render(self):
         if self.render_mode == "rgb_array":
+            return self._render_frame()
+        else:
             self._render_frame()
 
     def _render_frame(self):
@@ -143,10 +150,16 @@ class ShepherdingEnv(gym.Env):
         for target_pos in self.target_pos:
             pygame.draw.circle(self.window, (255, 0, 0), self._rescale_position(target_pos), 5)
 
-        pygame.draw.circle(self.window, (0, 255, 0), self._rescale_position((0, 0)), int(self.rho_g * 10), 2)
+        scaled_radius = int(self.rho_g * self.window_size / self.region_length)
+        pygame.draw.circle(self.window, (0, 255, 0), self._rescale_position((0, 0)), scaled_radius, 2)
 
         pygame.display.flip()
         self.clock.tick(self.metadata["render_fps"])
+
+        if self.render_mode == "rgb_array":
+            frame = pygame.surfarray.array3d(self.window)
+            frame = np.transpose(frame, (1, 0, 2))  # Convert from (width, height, channels) to (height, width, channels)
+            return frame
 
     def _rescale_position(self, pos):
         return int(pos[0] * self.window_size / self.region_length) + self.window_size // 2, int(pos[1] * self.window_size / self.region_length) + self.window_size // 2

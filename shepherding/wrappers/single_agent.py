@@ -35,7 +35,7 @@ class SingleAgentReward(Wrapper):
 
         reward = - self.k_1 * diff_distance - self.k_2 * target_distance
 
-        if herder_distance < self.env.unwrapped.rho_g and target_distance < self.env.unwrapped.rho_g:
+        if herder_distance < self.env.unwrapped.rho_g:
             reward -= self.k_4
         if target_distance < self.env.unwrapped.rho_g:
             reward += self.k_3

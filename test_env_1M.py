@@ -1,6 +1,6 @@
 import gymnasium as gym
 import numpy as np
-from shepherding.wrappers import SingleAgentReward, DeterministicReset
+from shepherding.wrappers import LowLevelPPOPolicy
 
 import cProfile
 import pstats
@@ -93,7 +93,7 @@ def herder_actions(env, observation, random=False):
         )
         )
 
-    return actions
+    return selected_target_indices
 
 
 profiler = cProfile.Profile()
@@ -101,7 +101,7 @@ profiler.enable()
 
 parameters = {
     'num_herders': 1,
-    'num_targets': 2,
+    'num_targets': 1,
     'noise_strength': 1,
     'rho_g': 5,
     'region_length': 60,
@@ -110,24 +110,25 @@ parameters = {
     'beta': 3,
 }
 env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
-env._max_episode_steps = 1000
-env = SingleAgentReward(env)
-# env = DeterministicReset(env)
+env._max_episode_steps = 3000
+env = LowLevelPPOPolicy(env, 100)
 
 # Run the simulation for a certain number of steps
 truncated = False
 terminated = False
 
-for episode in range(1, 10 + 1):
+for episode in range(1, 1 + 1):
     # Reset the environment to get the initial observation
     observation, info = env.reset()
+    action = env.action_space.sample()  # Example action
     step = 0
     cum_reward = 0
     truncated = False
     terminated = False
+
     while not (terminated or truncated):
+
         step += 1
-        # Choose a random action (here, randomly setting velocities for herders)
         action = herder_actions(env, observation, random=False)
         # Take a episode_step in the environment by applying the chosen action
         observation, reward, terminated, truncated, _ = env.step(action)

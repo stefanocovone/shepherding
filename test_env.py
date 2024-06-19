@@ -100,25 +100,26 @@ profiler = cProfile.Profile()
 profiler.enable()
 
 parameters = {
-    'num_herders': 1,
-    'num_targets': 2,
+    'num_herders': 10,
+    'num_targets': 20,
     'noise_strength': 1,
     'rho_g': 5,
     'region_length': 60,
     'xi': 1000,
-    'dt': 0.05,
-    'beta': 3,
+    'dt': 0.001,
+    'k_T': 3,
+    'k_rep': 0,
 }
-env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
-env._max_episode_steps = 1000
-env = SingleAgentReward(env)
+env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters)
+env._max_episode_steps = 3000*50
+# env = SingleAgentReward(env)
 # env = DeterministicReset(env)
 
 # Run the simulation for a certain number of steps
 truncated = False
 terminated = False
 
-for episode in range(1, 10 + 1):
+for episode in range(1, 3 + 1):
     # Reset the environment to get the initial observation
     observation, info = env.reset()
     step = 0

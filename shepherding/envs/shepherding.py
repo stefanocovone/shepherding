@@ -9,15 +9,17 @@ from gymnasium import spaces, Wrapper
 
 
 class ShepherdingEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 1000}
 
     def __init__(self, render_mode: Optional[str] = None, parameters=None, compute_reward: bool = True):
         self.compute_reward = compute_reward
         self.parameters = {
             'num_targets': 4,
             'noise_strength': 1,
-            'beta': 3,
+            'k_T': 3,
+            'k_rep': 1,
             'lambda': 2.5,
+            'sigma': 1,
             'num_herders': 2,
             'herder_max_vel': 8,
             'xi': 10,
@@ -33,8 +35,10 @@ class ShepherdingEnv(gym.Env):
 
         self.num_targets = self.parameters['num_targets']
         self.noise_strength = self.parameters['noise_strength']
-        self.beta = self.parameters['beta']
+        self.k_T = self.parameters['k_T']
+        self.k_rep = self.parameters['k_rep']
         self.lmbda = self.parameters['lambda']
+        self.sigma = self.parameters['sigma']
         self.num_herders = self.parameters['num_herders']
         self.herder_max_vel = self.parameters['herder_max_vel']
         self.xi = self.parameters['xi']
@@ -86,7 +90,9 @@ class ShepherdingEnv(gym.Env):
                                       self.region_length / 2)
 
         noise = self.noise_strength * np.sqrt(self.dt) * self.np_random.normal(size=(self.num_targets, 2))
-        repulsion = self._repulsion() * self.dt
+        repulsion = self.k_T * self._linear_repulsion(self.lmbda, self.target_pos, self.herder_pos) * self.dt + \
+                    self.k_rep * self._linear_repulsion(self.sigma, self.target_pos, self.herder_pos) * self.dt + \
+                    self.k_rep * self._linear_repulsion(self.sigma, self.target_pos, self.target_pos) * self.dt
         self.target_pos_new = np.clip(self.target_pos + noise + repulsion, -self.region_length / 2,
                                       self.region_length / 2)
 
@@ -115,11 +121,30 @@ class ShepherdingEnv(gym.Env):
     def _repulsion(self):
         differences = self.herder_pos[:, np.newaxis, :] - self.target_pos[np.newaxis, :, :]
         distances = np.linalg.norm(differences, axis=2)
-        nearby_agents = distances < self.lmbda
+        # nearby_agents = distances < self.lmbda
+        # nearby_differences = np.where(nearby_agents[:, :, np.newaxis], differences, 0)
+        # distances_with_min = np.maximum(distances[:, :, np.newaxis], 1e-6)
+
+        nearby_differences = differences * (distances < self.lmbda)
+        nearby_unit_vector = nearby_differences / distances
+        # nearby_unit_vector = nearby_differences / distances_with_min
+        repulsion = -self.k_T * np.sum((self.lmbda - distances[:, :, np.newaxis]) * nearby_unit_vector, axis=0)
+        return repulsion
+
+    def _linear_repulsion(self, repulsion_range, repelled_agents, repelling_agents):
+        '''
+        :param repulsion_range: range of repulsion between nearby agents
+        :param repelled_agents: agents who are repelled
+        :param repelling_agents: agents who repel
+        :return: vector of repulsion forced between agents
+        '''
+        differences = repelling_agents[:, np.newaxis, :] - repelled_agents[np.newaxis, :, :]
+        distances = np.linalg.norm(differences, axis=2)
+        nearby_agents = distances < repulsion_range
         nearby_differences = np.where(nearby_agents[:, :, np.newaxis], differences, 0)
         distances_with_min = np.maximum(distances[:, :, np.newaxis], 1e-6)
         nearby_unit_vector = nearby_differences / distances_with_min
-        repulsion = -self.beta * np.sum((self.lmbda - distances[:, :, np.newaxis]) * nearby_unit_vector, axis=0)
+        repulsion = -np.sum((repulsion_range - distances[:, :, np.newaxis]) * nearby_unit_vector, axis=0)
         return repulsion
 
     def _get_obs(self):
@@ -130,7 +155,7 @@ class ShepherdingEnv(gym.Env):
         return {"num_herders": self.num_herders, "num_targets": self.num_targets}
 
     def _random_positions(self, num_agents):
-        radius = self.np_random.uniform(self.rho_g+1, self.region_length / 2, num_agents)
+        radius = self.np_random.uniform(self.rho_g+1, 0.9 * self.region_length / 2, num_agents)
         angle = self.np_random.uniform(0, 2 * np.pi, num_agents)
         x = radius * np.cos(angle)
         y = radius * np.sin(angle)
@@ -165,10 +190,10 @@ class ShepherdingEnv(gym.Env):
 
         # Draw the initial region as a shaded circle (yellow with transparency)
         s = pygame.Surface((2 * domain_radius, 2 * domain_radius), pygame.SRCALPHA)
-        # pygame.draw.circle(s, (255, 255, 0, 77), (domain_radius, domain_radius),
-        #                    domain_radius)  # Alpha = 77 for transparency
+        pygame.draw.circle(s, (255, 255, 0, 77), (domain_radius, domain_radius),
+                           0.9*domain_radius)  # Alpha = 77 for transparency
 
-        pygame.draw.rect(s, (255, 255, 0, 57), (0, 0, 2*domain_radius, 2*domain_radius))  # Alpha = 77 for transparency
+        # pygame.draw.rect(s, (255, 255, 0, 57), (0, 0, 2*domain_radius, 2*domain_radius))  # Alpha = 77 for transparency
         pygame.draw.rect(s, (0, 0, 0), (0, 0, 2 * domain_radius, 2 * domain_radius), 1)  # Black border
         self.window.blit(s, (center[0] - domain_radius, center[1] - domain_radius))
 

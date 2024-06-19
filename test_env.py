@@ -101,17 +101,17 @@ profiler.enable()
 
 parameters = {
     'num_herders': 10,
-    'num_targets': 20,
+    'num_targets': 50,
     'noise_strength': 1,
     'rho_g': 5,
     'region_length': 60,
     'xi': 1000,
-    'dt': 0.001,
+    'dt': 0.05,
     'k_T': 3,
-    'k_rep': 0,
+    'k_rep': 100,
 }
 env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters)
-env._max_episode_steps = 3000*50
+env._max_episode_steps = 1000
 # env = SingleAgentReward(env)
 # env = DeterministicReset(env)
 
@@ -119,9 +119,9 @@ env._max_episode_steps = 3000*50
 truncated = False
 terminated = False
 
-for episode in range(1, 3 + 1):
+for episode in range(1, 1 + 1):
     # Reset the environment to get the initial observation
-    observation, info = env.reset()
+    observation, info = env.reset(seed=1)
     step = 0
     cum_reward = 0
     truncated = False
@@ -132,7 +132,7 @@ for episode in range(1, 3 + 1):
         action = herder_actions(env, observation, random=False)
         # Take a episode_step in the environment by applying the chosen action
         observation, reward, terminated, truncated, _ = env.step(action)
-        # print(reward)
+        # print(step)
         cum_reward += reward
 
     print("episode: ", episode, "reward: ", cum_reward)
@@ -142,4 +142,4 @@ env.close()
 
 profiler.disable()
 stats = pstats.Stats(profiler)
-stats.sort_stats('tottime').print_stats(10)
+stats.sort_stats('tottime').print_stats(2)

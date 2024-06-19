@@ -1,15 +1,14 @@
-from typing import Optional
-
 import numpy as np
+from scipy.integrate import solve_ivp
 import pygame
 import pygame.freetype
-
 import gymnasium as gym
-from gymnasium import spaces, Wrapper
+from gymnasium import spaces
+from typing import Optional
 
 
 class ShepherdingEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 1000}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 20}
 
     def __init__(self, render_mode: Optional[str] = None, parameters=None, compute_reward: bool = True):
         self.compute_reward = compute_reward
@@ -59,8 +58,6 @@ class ShepherdingEnv(gym.Env):
 
         self.herder_pos = np.zeros((self.num_herders, 2))
         self.target_pos = np.zeros((self.num_targets, 2))
-        self.herder_pos_new = np.zeros((self.num_herders, 2))
-        self.target_pos_new = np.zeros((self.num_targets, 2))
 
         self.episode_step = 0
 
@@ -85,19 +82,29 @@ class ShepherdingEnv(gym.Env):
         return observation, {}
 
     def step(self, action):
-        herder_vel = np.clip(action, -self.herder_max_vel, self.herder_max_vel)
-        self.herder_pos_new = np.clip(self.herder_pos + herder_vel * self.dt, -self.region_length / 2,
-                                      self.region_length / 2)
+        def dynamics(t, y):
+            herder_pos = y[:self.num_herders * 2].reshape(self.num_herders, 2)
+            target_pos = y[self.num_herders * 2:].reshape(self.num_targets, 2)
 
-        noise = self.noise_strength * np.sqrt(self.dt) * self.np_random.normal(size=(self.num_targets, 2))
-        repulsion = self.k_T * self._linear_repulsion(self.lmbda, self.target_pos, self.herder_pos) * self.dt + \
-                    self.k_rep * self._linear_repulsion(self.sigma, self.target_pos, self.herder_pos) * self.dt + \
-                    self.k_rep * self._linear_repulsion(self.sigma, self.target_pos, self.target_pos) * self.dt
-        self.target_pos_new = np.clip(self.target_pos + noise + repulsion, -self.region_length / 2,
-                                      self.region_length / 2)
+            herder_vel = np.clip(action, -self.herder_max_vel, self.herder_max_vel)
+            noise = np.sqrt(2 * self.noise_strength) * self.np_random.normal(size=(self.num_targets, 2))
+            repulsion = self.k_T * self._linear_repulsion(self.lmbda, target_pos, herder_pos) + \
+                        self.k_rep * self._linear_repulsion(self.sigma, target_pos, herder_pos) + \
+                        self.k_rep * self._linear_repulsion(self.sigma, target_pos, target_pos)
 
-        self.herder_pos = self.herder_pos_new
-        self.target_pos = self.target_pos_new
+            d_herder_pos = herder_vel.flatten()
+            d_target_pos = (noise + repulsion).flatten()
+
+            return np.concatenate([d_herder_pos, d_target_pos])
+
+        y0 = np.concatenate([self.herder_pos.flatten(), self.target_pos.flatten()])
+        t_span = (0, self.dt)
+        sol = solve_ivp(dynamics, t_span, y0, method='RK23', atol=1e-4, t_eval=[self.dt])
+
+        if sol.success:
+            y_new = sol.y[:, -1]
+            self.herder_pos = y_new[:self.num_herders * 2].reshape(self.num_herders, 2)
+            self.target_pos = y_new[self.num_herders * 2:].reshape(self.num_targets, 2)
 
         target_radii = np.linalg.norm(self.target_pos, axis=1)
         reward = self._compute_reward(target_radii, k_t=5) if self.compute_reward else 0.0
@@ -118,26 +125,7 @@ class ShepherdingEnv(gym.Env):
         reward = -np.sum(reward_vector)/100
         return reward
 
-    def _repulsion(self):
-        differences = self.herder_pos[:, np.newaxis, :] - self.target_pos[np.newaxis, :, :]
-        distances = np.linalg.norm(differences, axis=2)
-        # nearby_agents = distances < self.lmbda
-        # nearby_differences = np.where(nearby_agents[:, :, np.newaxis], differences, 0)
-        # distances_with_min = np.maximum(distances[:, :, np.newaxis], 1e-6)
-
-        nearby_differences = differences * (distances < self.lmbda)
-        nearby_unit_vector = nearby_differences / distances
-        # nearby_unit_vector = nearby_differences / distances_with_min
-        repulsion = -self.k_T * np.sum((self.lmbda - distances[:, :, np.newaxis]) * nearby_unit_vector, axis=0)
-        return repulsion
-
     def _linear_repulsion(self, repulsion_range, repelled_agents, repelling_agents):
-        '''
-        :param repulsion_range: range of repulsion between nearby agents
-        :param repelled_agents: agents who are repelled
-        :param repelling_agents: agents who repel
-        :return: vector of repulsion forced between agents
-        '''
         differences = repelling_agents[:, np.newaxis, :] - repelled_agents[np.newaxis, :, :]
         distances = np.linalg.norm(differences, axis=2)
         nearby_agents = distances < repulsion_range
@@ -155,7 +143,7 @@ class ShepherdingEnv(gym.Env):
         return {"num_herders": self.num_herders, "num_targets": self.num_targets}
 
     def _random_positions(self, num_agents):
-        radius = self.np_random.uniform(self.rho_g+1, 0.9 * self.region_length / 2, num_agents)
+        radius = self.np_random.uniform(self.rho_g + 1, 0.9 * self.region_length / 2, num_agents)
         angle = self.np_random.uniform(0, 2 * np.pi, num_agents)
         x = radius * np.cos(angle)
         y = radius * np.sin(angle)
@@ -191,9 +179,8 @@ class ShepherdingEnv(gym.Env):
         # Draw the initial region as a shaded circle (yellow with transparency)
         s = pygame.Surface((2 * domain_radius, 2 * domain_radius), pygame.SRCALPHA)
         pygame.draw.circle(s, (255, 255, 0, 77), (domain_radius, domain_radius),
-                           0.9*domain_radius)  # Alpha = 77 for transparency
+                           0.9 * domain_radius)  # Alpha = 77 for transparency
 
-        # pygame.draw.rect(s, (255, 255, 0, 57), (0, 0, 2*domain_radius, 2*domain_radius))  # Alpha = 77 for transparency
         pygame.draw.rect(s, (0, 0, 0), (0, 0, 2 * domain_radius, 2 * domain_radius), 1)  # Black border
         self.window.blit(s, (center[0] - domain_radius, center[1] - domain_radius))
 
@@ -224,14 +211,13 @@ class ShepherdingEnv(gym.Env):
                 (rescaled_pos[0] + 8, rescaled_pos[1]),  # Right
                 (rescaled_pos[0], rescaled_pos[1] + 10),  # Bottom
                 (rescaled_pos[0] - 8, rescaled_pos[1]),  # Left
-            ],1)
+            ], 1)
 
         # Display fraction of captured targets and time
         font = pygame.freetype.SysFont("cmb10.ttf", 24)
 
         # Specify the path to your Computer Modern font file (cmr10.ttf or any variant)
         font_path = r'C:\Users\stefa\anaconda3\pkgs\matplotlib-base-3.8.0-py311hf62ec03_0\Lib\site-packages\matplotlib\mpl-data\fonts\ttf\cmr10.ttf'
-
 
         # Load the font file
         font = pygame.font.Font(font_path, 24)  # Adjust the font size (24 in this case)
@@ -262,8 +248,8 @@ class ShepherdingEnv(gym.Env):
             return frame
 
     def _rescale_position(self, pos):
-        return int(pos[0] * self.window_size / self.region_length) + (self.window_size+20) // 2, int(
-            pos[1] * self.window_size / self.region_length) + (self.window_size+140) // 2
+        return int(pos[0] * self.window_size / self.region_length) + (self.window_size + 20) // 2, int(
+            pos[1] * self.window_size / self.region_length) + (self.window_size + 140) // 2
 
     def close(self):
         if self.window is not None:

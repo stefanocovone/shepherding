@@ -165,10 +165,10 @@ class ShepherdingEnv(gym.Env):
 
         # Draw the initial region as a shaded circle (yellow with transparency)
         s = pygame.Surface((2 * domain_radius, 2 * domain_radius), pygame.SRCALPHA)
-        # pygame.draw.circle(s, (255, 255, 0, 77), (domain_radius, domain_radius),
-        #                    domain_radius)  # Alpha = 77 for transparency
+        pygame.draw.circle(s, (255, 255, 0, 77), (domain_radius, domain_radius),
+                           domain_radius)  # Alpha = 77 for transparency
 
-        pygame.draw.rect(s, (255, 255, 0, 57), (0, 0, 2*domain_radius, 2*domain_radius))  # Alpha = 77 for transparency
+        # pygame.draw.rect(s, (255, 255, 0, 57), (0, 0, 2*domain_radius, 2*domain_radius))  # Alpha = 77 for transparency
         pygame.draw.rect(s, (0, 0, 0), (0, 0, 2 * domain_radius, 2 * domain_radius), 1)  # Black border
         self.window.blit(s, (center[0] - domain_radius, center[1] - domain_radius))
 

@@ -100,8 +100,8 @@ profiler = cProfile.Profile()
 profiler.enable()
 
 parameters = {
-    'num_herders': 1,
-    'num_targets': 1,
+    'num_herders': 5,
+    'num_targets': 10,
     'noise_strength': 1,
     'rho_g': 5,
     'region_length': 60,
@@ -111,7 +111,7 @@ parameters = {
 }
 env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
 env._max_episode_steps = 3000
-env = LowLevelPPOPolicy(env, 100)
+env = LowLevelPPOPolicy(env, 1)
 
 # Run the simulation for a certain number of steps
 truncated = False

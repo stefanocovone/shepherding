@@ -1,4 +1,5 @@
 import numpy as np
+import sdeint
 from scipy.integrate import solve_ivp
 import pygame
 import pygame.freetype
@@ -49,6 +50,14 @@ class ShepherdingEnv(gym.Env):
 
         self.num_agents = self.num_herders + self.num_targets
 
+        self.diffusion_matrix = np.zeros((self.num_agents * 2, self.num_agents * 2))
+        target_noise_strength = np.sqrt(2 * self.noise_strength)
+
+        # Assign noise strength to the diagonal elements of the target submatrix
+        self.diffusion_matrix[self.num_herders * 2:, self.num_herders * 2:] = np.diag(
+            [target_noise_strength] * self.num_targets * 2
+        )
+
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
 
@@ -60,6 +69,7 @@ class ShepherdingEnv(gym.Env):
         self.target_pos = np.zeros((self.num_targets, 2))
 
         self.episode_step = 0
+        self.render_framerate = int(0.05 / self.dt)
 
         self.window_size = 600
         self.window = None
@@ -81,30 +91,42 @@ class ShepherdingEnv(gym.Env):
 
         return observation, {}
 
+    import sdeint
+
     def step(self, action):
-        def dynamics(t, y):
-            herder_pos = y[:self.num_herders * 2].reshape(self.num_herders, 2)
-            target_pos = y[self.num_herders * 2:].reshape(self.num_targets, 2)
+
+        def drift(y, t):
+            y_reshaped = y.reshape(self.num_herders + self.num_targets, 2)
+
+            herder_pos = y_reshaped[:self.num_herders]
+            target_pos = y_reshaped[self.num_herders:]
 
             herder_vel = np.clip(action, -self.herder_max_vel, self.herder_max_vel)
-            noise = np.sqrt(2 * self.noise_strength) * self.np_random.normal(size=(self.num_targets, 2))
             repulsion = self.k_T * self._linear_repulsion(self.lmbda, target_pos, herder_pos) + \
                         self.k_rep * self._linear_repulsion(self.sigma, target_pos, herder_pos) + \
                         self.k_rep * self._linear_repulsion(self.sigma, target_pos, target_pos)
 
-            d_herder_pos = herder_vel.flatten()
-            d_target_pos = (noise + repulsion).flatten()
+            repulsion_h = self.k_rep * self._linear_repulsion(self.sigma, herder_pos, target_pos) + \
+                        self.k_rep * self._linear_repulsion(self.sigma, herder_pos, herder_pos)
+
+            d_herder_pos = (herder_vel + repulsion_h).flatten()
+            d_target_pos = repulsion.flatten()
 
             return np.concatenate([d_herder_pos, d_target_pos])
 
-        y0 = np.concatenate([self.herder_pos.flatten(), self.target_pos.flatten()])
-        t_span = (0, self.dt)
-        sol = solve_ivp(dynamics, t_span, y0, method='RK23', atol=1e-4, t_eval=[self.dt])
+        def diffusion(y, t):
+            return self.diffusion_matrix
 
-        if sol.success:
-            y_new = sol.y[:, -1]
-            self.herder_pos = y_new[:self.num_herders * 2].reshape(self.num_herders, 2)
-            self.target_pos = y_new[self.num_herders * 2:].reshape(self.num_targets, 2)
+        y0 = np.concatenate([self.herder_pos.flatten(), self.target_pos.flatten()])
+        tspan = np.arange(0, self.dt, 0.001)
+        # tspan = np.array([0, self.dt])
+        y_stoch = sdeint.itoEuler(drift, diffusion, y0, tspan, generator=self.np_random)
+        y_new = y_stoch[-1]
+
+        self.herder_pos = np.clip(y_new[:self.num_herders * 2].reshape(self.num_herders, 2), -self.region_length / 2,
+                self.region_length / 2)
+        self.target_pos = np.clip(y_new[self.num_herders * 2:].reshape(self.num_targets, 2), -self.region_length / 2,
+                self.region_length / 2)
 
         target_radii = np.linalg.norm(self.target_pos, axis=1)
         reward = self._compute_reward(target_radii, k_t=5) if self.compute_reward else 0.0
@@ -112,7 +134,7 @@ class ShepherdingEnv(gym.Env):
         truncated = False
         info = self._get_info()
 
-        if self.render_mode == "human":
+        if self.render_mode == "human" and self.episode_step % self.render_framerate == 0:
             self._render_frame()
 
         self.episode_step += 1

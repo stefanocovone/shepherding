@@ -100,8 +100,8 @@ profiler = cProfile.Profile()
 profiler.enable()
 
 parameters = {
-    'num_herders': 10,
-    'num_targets': 50,
+    'num_herders': 20,
+    'num_targets': 100,
     'noise_strength': 1,
     'rho_g': 5,
     'region_length': 60,

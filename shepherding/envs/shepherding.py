@@ -118,8 +118,9 @@ class ShepherdingEnv(gym.Env):
             return self.diffusion_matrix
 
         y0 = np.concatenate([self.herder_pos.flatten(), self.target_pos.flatten()])
-        tspan = np.arange(0, self.dt, 0.001)
-        # tspan = np.array([0, self.dt])
+        tspan = np.arange(0, self.dt, 0.05)
+        tspan = np.array([0, self.dt])
+
         y_stoch = sdeint.itoEuler(drift, diffusion, y0, tspan, generator=self.np_random)
         y_new = y_stoch[-1]
 

@@ -101,13 +101,13 @@ profiler.enable()
 
 parameters = {
     'num_herders': 20,
-    'num_targets': 100,
-    'noise_strength': 1,
+    'num_targets': 50,
+    'noise_strength': 0.1,
     'rho_g': 5,
     'region_length': 60,
     'xi': 1000,
     'dt': 0.05,
-    'k_T': 3,
+    'k_T': 5,
     'k_rep': 100,
 }
 env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters)

@@ -100,17 +100,19 @@ profiler = cProfile.Profile()
 profiler.enable()
 
 parameters = {
-    'num_herders': 5,
-    'num_targets': 10,
+    'num_herders': 2,
+    'num_targets': 3,
     'noise_strength': 1,
     'rho_g': 5,
     'region_length': 60,
     'xi': 1000,
     'dt': 0.05,
-    'beta': 3,
+    'k_T': 3,
+    'k_rep': 100,
 }
-env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
+env = gym.make('Shepherding-v1', render_mode='human', parameters=parameters)
 env._max_episode_steps = 3000
+# env = gym.wrappers.RecordVideo(env, f"videos")
 env = LowLevelPPOPolicy(env, 1)
 
 # Run the simulation for a certain number of steps
@@ -119,7 +121,7 @@ terminated = False
 
 for episode in range(1, 1 + 1):
     # Reset the environment to get the initial observation
-    observation, info = env.reset()
+    observation, info = env.reset(seed=episode)
     action = env.action_space.sample()  # Example action
     step = 0
     cum_reward = 0

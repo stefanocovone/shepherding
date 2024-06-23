@@ -100,27 +100,28 @@ profiler = cProfile.Profile()
 profiler.enable()
 
 parameters = {
-    'num_herders': 1,
-    'num_targets': 2,
-    'noise_strength': 1,
+    'num_herders': 20,
+    'num_targets': 50,
+    'noise_strength': 0.1,
     'rho_g': 5,
     'region_length': 60,
     'xi': 1000,
     'dt': 0.05,
-    'beta': 3,
+    'k_T': 5,
+    'k_rep': 100,
 }
 env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
 env._max_episode_steps = 1000
-env = SingleAgentReward(env)
+# env = SingleAgentReward(env)
 # env = DeterministicReset(env)
 
 # Run the simulation for a certain number of steps
 truncated = False
 terminated = False
 
-for episode in range(1, 10 + 1):
+for episode in range(1, 1 + 1):
     # Reset the environment to get the initial observation
-    observation, info = env.reset()
+    observation, info = env.reset(seed=1)
     step = 0
     cum_reward = 0
     truncated = False
@@ -131,7 +132,7 @@ for episode in range(1, 10 + 1):
         action = herder_actions(env, observation, random=False)
         # Take a episode_step in the environment by applying the chosen action
         observation, reward, terminated, truncated, _ = env.step(action)
-        # print(reward)
+        # print(step)
         cum_reward += reward
 
     print("episode: ", episode, "reward: ", cum_reward)

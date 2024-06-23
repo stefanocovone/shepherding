@@ -110,7 +110,7 @@ parameters = {
     'k_T': 5,
     'k_rep': 100,
 }
-env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters)
+env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
 env._max_episode_steps = 1000
 # env = SingleAgentReward(env)
 # env = DeterministicReset(env)
@@ -142,4 +142,4 @@ env.close()
 
 profiler.disable()
 stats = pstats.Stats(profiler)
-stats.sort_stats('tottime').print_stats(2)
+stats.sort_stats('tottime').print_stats(10)

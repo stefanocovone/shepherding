@@ -1,6 +1,5 @@
 import numpy as np
 import sdeint
-from scipy.integrate import solve_ivp
 import pygame
 import pygame.freetype
 import gymnasium as gym
@@ -8,7 +7,7 @@ from gymnasium import spaces
 from typing import Optional
 
 
-class ShepherdingEnv(gym.Env):
+class ShepherdingEnvNew(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 20}
 
     def __init__(self, render_mode: Optional[str] = None, parameters=None, compute_reward: bool = True):
@@ -28,6 +27,8 @@ class ShepherdingEnv(gym.Env):
             'max_steps': 2000,
             'dt': 0.05,
             'rho_g': 10,
+            'simulation_dt': 0.001,
+            'solver': "Euler",
         }
 
         if parameters is not None:
@@ -46,7 +47,11 @@ class ShepherdingEnv(gym.Env):
         self.region_length = self.parameters['region_length']
         self.max_steps = self.parameters['max_steps']
         self.dt = self.parameters['dt']
+        self.sim_dt = self.parameters['simulation_dt']
         self.rho_g = self.parameters['rho_g']
+        self.solver = self.parameters['solver']
+
+        assert self.solver == 'Euler' or self.solver == 'SRI2'
 
         self.num_agents = self.num_herders + self.num_targets
 
@@ -91,8 +96,6 @@ class ShepherdingEnv(gym.Env):
 
         return observation, {}
 
-    import sdeint
-
     def diffusion(self, y, t):
         return self.diffusion_matrix
 
@@ -116,10 +119,16 @@ class ShepherdingEnv(gym.Env):
 
 
         y0 = np.concatenate([self.herder_pos.flatten(), self.target_pos.flatten()])
-        tspan = np.arange(0, self.dt, 0.001)
-        # tspan = np.array([0, self.dt])
 
-        y_stoch = sdeint.itoEuler(drift, self.diffusion, y0, tspan, generator=self.np_random)
+        if self.dt != self.sim_dt:
+            tspan = np.arange(0, self.dt, self.sim_dt)
+        else:
+            tspan = np.array([0, self.dt])
+
+        if self.solver == 'Euler':
+            y_stoch = sdeint.itoEuler(drift, self.diffusion, y0, tspan, generator=self.np_random)
+        else:
+            y_stoch = sdeint.itoSRI2(drift, self.diffusion, y0, tspan, generator=self.np_random)
         y_new = y_stoch[-1]
 
         self.herder_pos = np.clip(y_new[:self.num_herders * 2].reshape(self.num_herders, 2), -self.region_length / 2,
@@ -145,29 +154,6 @@ class ShepherdingEnv(gym.Env):
         reward_vector = np.where(distance_from_goal < 0, -k_t, distance_from_goal)
         reward = -np.sum(reward_vector)/100
         return reward
-
-    def _linear_repulsion(self, repulsion_range, repelled_agents, repelling_agents):
-        '''
-        differences = repelling_agents[:, np.newaxis, :] - repelled_agents[np.newaxis, :, :]
-        distances = np.linalg.norm(differences, axis=2)
-        nearby_agents = distances < repulsion_range
-        nearby_differences = np.where(nearby_agents[:, :, np.newaxis], differences, 0)
-        distances_with_min = np.maximum(distances[:, :, np.newaxis], 1e-6)
-        nearby_unit_vector = nearby_differences / distances_with_min
-        repulsion = -np.sum((repulsion_range - distances[:, :, np.newaxis]) * nearby_unit_vector, axis=0)
-        return repulsion
-        '''
-        differences = repelling_agents[:, np.newaxis, :] - repelled_agents[np.newaxis, :, :]
-        distances = np.linalg.norm(differences, axis=2)
-        distances[distances == 0] = 1e-6  # Directly set zero distances to a small value
-        nearby_agents = distances < repulsion_range
-
-        # Perform combined calculation in a single line
-        distances_expanded = distances[:, :, np.newaxis]
-        repulsion = -np.sum((repulsion_range - distances_expanded) *
-                            differences * nearby_agents[:, :, np.newaxis] / distances_expanded, axis=0)
-
-        return repulsion
 
     def _compute_repulsion(self, herder_pos, target_pos):
         all_agents = np.concatenate([herder_pos, target_pos])
@@ -224,10 +210,6 @@ class ShepherdingEnv(gym.Env):
             return self._render_frame()
         else:
             self._render_frame()
-
-    import pygame
-    import pygame.freetype
-    import numpy as np
 
     def _render_frame(self):
         if self.window is None:

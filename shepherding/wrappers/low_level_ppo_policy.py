@@ -28,7 +28,10 @@ class LowLevelPPOPolicy(Wrapper):
 
             # Prepare batched inputs for the neural network
             herder_positions = self.env.herder_pos / self.env.unwrapped.region_length
-            target_positions = self.env.target_pos[action] / self.env.unwrapped.region_length
+            if action > 100 + self.env.num_targets:
+                target_positions = self.env.target_pos[action] / self.env.unwrapped.region_length
+            else:
+                target_positions = np.array([[0, 0]])
 
             relative_positions = target_positions - herder_positions
             # Stack relative positions and target positions to form the batch

@@ -115,7 +115,7 @@ parameters = {
     'solver': 'Euler',
 }
 env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters, rand_target = False)
-env._max_episode_steps = 1
+env._max_episode_steps = 1000
 # env = gym.wrappers.RecordVideo(env, f"videos", name_prefix='v1_0_05')
 env = LowLevelPPOPolicy(env, 100)
 

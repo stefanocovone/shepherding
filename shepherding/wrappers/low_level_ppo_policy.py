@@ -13,7 +13,7 @@ class LowLevelPPOPolicy(Wrapper):
         super().__init__(env)
         self.env = env
         # Action space is now discrete, each herder selects a target index
-        self.action_space = spaces.MultiDiscrete([env.num_targets] * env.num_herders)
+        self.action_space = spaces.MultiDiscrete([env.num_targets_max] * env.num_herders)
         # Observation space remains the same
         self.observation_space = env.observation_space
         # Initialize the neural network

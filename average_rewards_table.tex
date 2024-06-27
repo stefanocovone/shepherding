@@ -1,0 +1,20 @@
+
+\begin{table}[ht]
+\centering
+\caption{Average Cumulative Rewards for Different Configurations and Solvers}
+\begin{tabular}{cc|c|cccccccc}
+\toprule
+\multirow{2}{*}{\textbf{N}} & \multirow{2}{*}{\textbf{M}} & \textbf{Reward v0} & \multicolumn{8}{c}{\textbf{New Model}} \\
+\cmidrule(lr){3-11}
+ &  & \textbf{EM (0.05)} & \multicolumn{2}{c}{0.05} & \multicolumn{2}{c}{0.01} & \multicolumn{2}{c}{0.005} & \multicolumn{2}{c}{0.001} \\
+\cmidrule(lr){4-11}
+ &  &  & \textbf{EM} & \textbf{SRI2} & \textbf{EM} & \textbf{SRI2} & \textbf{EM} & \textbf{SRI2} & \textbf{EM} & \textbf{SRI2} \\
+\midrule
+1 & 1 & 121.77 & 126.86 & 118.11 & 121.33 & 120.21 & 123.87 & 118.16 & 125.42 & 123.85 \\
+5 & 20 & 1093.16 & -2267.37 & -746.48 & 139.55 & 589.38 & 410.41 & 791.57 & 809.61 & 970.02 \\
+10 & 50 & 3182.21 & -9109.14 & -5485.33 & -301.66 & 649.24 & 1114.84 & 1779.30 & 1794.80 & 1656.15 \\
+20 & 100 & 9098.58 & -25392.59 & -16589.74 & -2701.81 & 378.26 & 576.60 & 1583.05 & 1855.80 & N/A \\
+\bottomrule
+\end{tabular}
+\label{tab:avg_rewards}
+\end{table}

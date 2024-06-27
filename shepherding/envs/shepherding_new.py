@@ -74,7 +74,7 @@ class ShepherdingEnvNew(gym.Env):
         self.target_pos = np.zeros((self.num_targets, 2))
 
         self.episode_step = 0
-        self.render_framerate = int(0.05 / self.dt)
+        self.render_framerate = 1
 
         self.window_size = 600
         self.window = None
@@ -291,6 +291,10 @@ class ShepherdingEnvNew(gym.Env):
 
         pygame.display.flip()
         self.clock.tick(self.metadata["render_fps"])
+
+        # Save the frame as an image
+        if self.episode_step == 990:
+            pygame.image.save(self.window, "v1_0_001.png")
 
         if self.render_mode == "rgb_array":
             frame = pygame.surfarray.array3d(self.window)

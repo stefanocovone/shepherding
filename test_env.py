@@ -100,18 +100,20 @@ profiler = cProfile.Profile()
 profiler.enable()
 
 parameters = {
-    'num_herders': 20,
+    'num_herders': 30,
     'num_targets': 50,
-    'noise_strength': 0.1,
+    'noise_strength': 0,
     'rho_g': 5,
     'region_length': 60,
     'xi': 1000,
     'dt': 0.05,
-    'k_T': 5,
+    'k_T': 3,
     'k_rep': 100,
+    'simulation_dt': 0.01,
+    'solver': 'Euler',
 }
-env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
-env._max_episode_steps = 1000
+env = gym.make('Shepherding-v1', render_mode='human', parameters=parameters)
+env._max_episode_steps = 2000
 # env = SingleAgentReward(env)
 # env = DeterministicReset(env)
 

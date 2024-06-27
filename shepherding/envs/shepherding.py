@@ -9,7 +9,7 @@ from gymnasium import spaces, Wrapper
 
 
 class ShepherdingEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 20}
 
     def __init__(self, render_mode: Optional[str] = None, parameters=None, compute_reward: bool = True):
         self.compute_reward = compute_reward
@@ -130,7 +130,7 @@ class ShepherdingEnv(gym.Env):
         return {"num_herders": self.num_herders, "num_targets": self.num_targets}
 
     def _random_positions(self, num_agents):
-        radius = self.np_random.uniform(self.rho_g+1, self.region_length / 2, num_agents)
+        radius = self.np_random.uniform(self.rho_g + 1, 0.9 * self.region_length / 2, num_agents)
         angle = self.np_random.uniform(0, 2 * np.pi, num_agents)
         x = radius * np.cos(angle)
         y = radius * np.sin(angle)
@@ -160,13 +160,13 @@ class ShepherdingEnv(gym.Env):
 
         # Define the center and radius of circles
         center = self._rescale_position((0, 0))
-        goal_radius = int(5 * self.window_size / self.region_length)
+        goal_radius = int(self.rho_g * self.window_size / self.region_length)
         domain_radius = int(0.5 * self.window_size)
 
         # Draw the initial region as a shaded circle (yellow with transparency)
         s = pygame.Surface((2 * domain_radius, 2 * domain_radius), pygame.SRCALPHA)
         pygame.draw.circle(s, (255, 255, 0, 77), (domain_radius, domain_radius),
-                           domain_radius)  # Alpha = 77 for transparency
+                           0.9 * domain_radius)  # Alpha = 77 for transparency
 
         # pygame.draw.rect(s, (255, 255, 0, 57), (0, 0, 2*domain_radius, 2*domain_radius))  # Alpha = 77 for transparency
         pygame.draw.rect(s, (0, 0, 0), (0, 0, 2 * domain_radius, 2 * domain_radius), 1)  # Black border
@@ -229,6 +229,10 @@ class ShepherdingEnv(gym.Env):
 
         pygame.display.flip()
         self.clock.tick(self.metadata["render_fps"])
+
+        # Save the frame as an image
+        if self.episode_step == 990:
+            pygame.image.save(self.window, "frame_capture.png")
 
         if self.render_mode == "rgb_array":
             frame = pygame.surfarray.array3d(self.window)

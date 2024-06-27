@@ -11,10 +11,13 @@ from gymnasium import spaces, Wrapper
 class ShepherdingEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 20}
 
-    def __init__(self, render_mode: Optional[str] = None, parameters=None, compute_reward: bool = True):
+    def __init__(self, render_mode: Optional[str] = None, parameters=None,
+                 compute_reward: bool = True, rand_target: bool = False):
         self.compute_reward = compute_reward
         self.parameters = {
-            'num_targets': 4,
+            'num_targets_min': 2,
+            'num_targets_max': 10,
+            'num_targets': 5,
             'noise_strength': 1,
             'k_T': 3,
             'lambda': 2.5,
@@ -32,6 +35,13 @@ class ShepherdingEnv(gym.Env):
             self.parameters.update(parameters)
 
         self.num_targets = self.parameters['num_targets']
+        if rand_target:
+            self.num_targets_min = self.parameters['num_targets_min']
+            self.num_targets_max = self.parameters['num_targets_max']
+        else:
+            self.num_targets_min = self.num_targets
+            self.num_targets_max = self.num_targets
+
         self.noise_strength = self.parameters['noise_strength']
         self.k_T = self.parameters['k_T']
         self.lmbda = self.parameters['lambda']
@@ -44,19 +54,19 @@ class ShepherdingEnv(gym.Env):
         self.dt = self.parameters['dt']
         self.rho_g = self.parameters['rho_g']
 
-        self.num_agents = self.num_herders + self.num_targets
+        self.num_agents = self.num_herders + self.num_targets_max
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
 
         self.observation_space = spaces.Box(low=-self.region_length / 2, high=self.region_length / 2,
-                                            shape=(self.num_herders + self.num_targets, 2,), dtype=np.float32)
+                                            shape=(self.num_herders + self.num_targets_max, 2,), dtype=np.float32)
         self.action_space = spaces.Box(low=-self.herder_max_vel, high=self.herder_max_vel, shape=(self.num_herders, 2))
 
         self.herder_pos = np.zeros((self.num_herders, 2))
-        self.target_pos = np.zeros((self.num_targets, 2))
+        self.target_pos = np.zeros((self.num_targets_max, 2))
         self.herder_pos_new = np.zeros((self.num_herders, 2))
-        self.target_pos_new = np.zeros((self.num_targets, 2))
+        self.target_pos_new = np.zeros((self.num_targets_max, 2))
 
         self.episode_step = 0
 
@@ -66,9 +76,12 @@ class ShepherdingEnv(gym.Env):
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed)
+
+        self.num_targets = self.np_random.integers(self.num_targets_min, self.num_targets_max + 1)
+
         all_positions = self._random_positions(self.num_herders + self.num_targets)
         self.herder_pos = all_positions[:self.num_herders]
-        self.target_pos = all_positions[self.num_herders:]
+        self.target_pos = all_positions[self.num_herders:self.num_herders + self.num_targets]
 
         observation = self._get_obs()
         info = self._get_info()
@@ -109,7 +122,7 @@ class ShepherdingEnv(gym.Env):
     def _compute_reward(self, target_radii, k_t):
         distance_from_goal = target_radii - self.rho_g
         reward_vector = np.where(distance_from_goal < 0, -k_t, distance_from_goal)
-        reward = -np.sum(reward_vector)/100
+        reward = -np.sum(reward_vector) / 100
         return reward
 
     def _repulsion(self):
@@ -123,7 +136,15 @@ class ShepherdingEnv(gym.Env):
         return repulsion
 
     def _get_obs(self):
-        state = np.concatenate((self.herder_pos, self.target_pos)).astype(np.float32)
+        # Create an array of zeros for the target positions
+        zero_filled_targets = np.zeros((self.num_targets_max, 2), dtype=np.float32)
+
+        # Fill the first 'num_targets' positions with the actual target positions
+        zero_filled_targets[:self.num_targets] = self.target_pos[:self.num_targets]
+
+        # Concatenate herder positions and zero-filled target positions
+        state = np.concatenate((self.herder_pos, zero_filled_targets)).astype(np.float32)
+
         return state
 
     def _get_info(self):
@@ -142,10 +163,6 @@ class ShepherdingEnv(gym.Env):
             return self._render_frame()
         else:
             self._render_frame()
-
-    import pygame
-    import pygame.freetype
-    import numpy as np
 
     def _render_frame(self):
         if self.window is None:
@@ -177,7 +194,7 @@ class ShepherdingEnv(gym.Env):
 
         # Draw targets and count those in the goal region
         p_in = 0  # Counter for targets in the goal region
-        for target_pos in self.target_pos:
+        for target_pos in self.target_pos[:self.num_targets]:
             pygame.draw.circle(self.window, (255, 0, 255), self._rescale_position(target_pos),
                                5)  # Smaller circle for targets
             pygame.draw.circle(self.window, (0, 0, 0), self._rescale_position(target_pos),
@@ -211,7 +228,7 @@ class ShepherdingEnv(gym.Env):
         # Load the font file
         font = pygame.font.Font(font_path, 24)  # Adjust the font size (24 in this case)
 
-        fraction_text = f'Fraction of captured targets X={p_in / len(self.target_pos):.2f}'
+        fraction_text = f'Fraction of captured targets X={p_in / len(self.target_pos[:self.num_targets]):.2f}'
         current_time = self.episode_step * self.dt
         time_text = f't={current_time:.2f}'
 
@@ -229,10 +246,6 @@ class ShepherdingEnv(gym.Env):
 
         pygame.display.flip()
         self.clock.tick(self.metadata["render_fps"])
-
-        # Save the frame as an image
-        if self.episode_step == 990:
-            pygame.image.save(self.window, "frame_capture.png")
 
         if self.render_mode == "rgb_array":
             frame = pygame.surfarray.array3d(self.window)

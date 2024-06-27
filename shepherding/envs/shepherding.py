@@ -107,7 +107,7 @@ class ShepherdingEnv(gym.Env):
         self.target_pos = self.target_pos_new
 
         target_radii = np.linalg.norm(self.target_pos, axis=1)
-        reward = self._compute_reward(target_radii, k_t=5) if self.compute_reward else 0.0
+        reward = self._compute_reward(target_radii, k_t=10) if self.compute_reward else 0.0
         terminated = False
         truncated = False
         info = self._get_info()

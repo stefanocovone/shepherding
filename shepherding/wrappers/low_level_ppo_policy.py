@@ -13,7 +13,7 @@ class LowLevelPPOPolicy(Wrapper):
         super().__init__(env)
         self.env = env
         # Action space is now discrete, each herder selects a target index
-        self.action_space = spaces.MultiDiscrete([env.num_targets_max] * env.num_herders)
+        self.action_space = spaces.MultiDiscrete([env.unwrapped.num_targets_max] * env.unwrapped.num_herders)
         # Observation space remains the same
         self.observation_space = env.observation_space
         # Initialize the neural network
@@ -27,11 +27,20 @@ class LowLevelPPOPolicy(Wrapper):
         for step in range(self.update_frequency):
 
             # Prepare batched inputs for the neural network
-            herder_positions = self.env.herder_pos / self.env.unwrapped.region_length
-            if action > 100 + self.env.num_targets:
-                target_positions = self.env.target_pos[action] / self.env.unwrapped.region_length
-            else:
-                target_positions = np.array([[0, 0]])
+            herder_positions = self.env.unwrapped.herder_pos / self.env.unwrapped.region_length
+
+            # Assuming action is a NumPy array of integers
+            action = np.array(action)
+
+            # Initialize the target_positions array with zeros
+            target_positions = np.zeros((len(action), 2), dtype=np.float32)
+
+            # Filter the action elements that are within the valid range
+            valid_indices = action < self.env.unwrapped.num_targets
+
+            # Only fetch positions for valid actions
+            target_positions[valid_indices] = self.env.unwrapped.target_pos[
+                                                  action[valid_indices]] / self.env.unwrapped.region_length
 
             relative_positions = target_positions - herder_positions
             # Stack relative positions and target positions to form the batch

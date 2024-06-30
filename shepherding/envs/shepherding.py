@@ -9,7 +9,7 @@ from gymnasium import spaces, Wrapper
 
 
 class ShepherdingEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 20}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 200}
 
     def __init__(self, render_mode: Optional[str] = None, parameters=None,
                  compute_reward: bool = True, rand_target: bool = False):
@@ -69,6 +69,8 @@ class ShepherdingEnv(gym.Env):
         self.target_pos_new = np.zeros((self.num_targets_max, 2))
 
         self.episode_step = 0
+        self.settling_time = 0
+        self.chi = 0
 
         self.window_size = 600
         self.window = None
@@ -87,6 +89,8 @@ class ShepherdingEnv(gym.Env):
         info = self._get_info()
 
         self.episode_step = 0
+        self.settling_time = 0
+        self.chi = 0
 
         if self.render_mode == "human":
             self._render_frame()
@@ -106,22 +110,30 @@ class ShepherdingEnv(gym.Env):
         self.herder_pos = self.herder_pos_new
         self.target_pos = self.target_pos_new
 
+        self.episode_step += 1
+
         target_radii = np.linalg.norm(self.target_pos, axis=1)
-        reward = self._compute_reward(target_radii, k_t=10) if self.compute_reward else 0.0
+        reward = self._compute_reward(target_radii, k_t=200) if self.compute_reward else 0.0
         terminated = False
         truncated = False
+
+        if np.max(target_radii) > self.rho_g*1.1:
+            self.settling_time = self.episode_step
+
+        # Count the number of targets with radius less than rho_g
+        num_targets_within_goal = np.sum(target_radii < self.rho_g)
+        self.chi = num_targets_within_goal / self.num_targets
+
         info = self._get_info()
 
         if self.render_mode == "human":
             self._render_frame()
 
-        self.episode_step += 1
-
         return self._get_obs(), reward, terminated, truncated, info
 
     def _compute_reward(self, target_radii, k_t):
         distance_from_goal = target_radii - self.rho_g
-        reward_vector = np.where(distance_from_goal < 0, -k_t, distance_from_goal)
+        reward_vector = np.where(distance_from_goal < 0, -20, distance_from_goal)
         reward = -np.sum(reward_vector) / 100
         return reward
 
@@ -148,7 +160,10 @@ class ShepherdingEnv(gym.Env):
         return state
 
     def _get_info(self):
-        return {"num_herders": self.num_herders, "num_targets": self.num_targets}
+        return {"num_herders": self.num_herders,
+                "num_targets": self.num_targets,
+                "settling_time": self.settling_time,
+                "fraction_captured_targets": self.chi}
 
     def _random_positions(self, num_agents):
         radius = self.np_random.uniform(self.rho_g + 1, 0.9 * self.region_length / 2, num_agents)
@@ -192,15 +207,12 @@ class ShepherdingEnv(gym.Env):
         # Draw the goal region as a solid blue circle
         pygame.draw.circle(self.window, (0, 116, 187), center, goal_radius, 5)
 
-        # Draw targets and count those in the goal region
-        p_in = 0  # Counter for targets in the goal region
+        # Draw targets
         for target_pos in self.target_pos[:self.num_targets]:
             pygame.draw.circle(self.window, (255, 0, 255), self._rescale_position(target_pos),
                                5)  # Smaller circle for targets
             pygame.draw.circle(self.window, (0, 0, 0), self._rescale_position(target_pos),
                                5, 1)  # Smaller circle for targets
-            if np.linalg.norm(target_pos) < 5:
-                p_in += 1
 
         # Draw herders as diamonds
         for herder_pos in self.herder_pos:
@@ -228,7 +240,7 @@ class ShepherdingEnv(gym.Env):
         # Load the font file
         font = pygame.font.Font(font_path, 24)  # Adjust the font size (24 in this case)
 
-        fraction_text = f'Fraction of captured targets X={p_in / len(self.target_pos[:self.num_targets]):.2f}'
+        fraction_text = f'Fraction of captured targets X={self.chi:.2f}'
         current_time = self.episode_step * self.dt
         time_text = f't={current_time:.2f}'
 

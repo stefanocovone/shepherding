@@ -4,7 +4,7 @@ from shepherding.utils.control_rules import select_targets
 
 parameters = {
     'num_herders': 1,
-    'num_targets': 7,
+    'num_targets': 20,
     'num_targets_min': 2,
     'num_targets_max': 7,
     'noise_strength': .1,
@@ -17,15 +17,15 @@ parameters = {
     'simulation_dt': 0.001,
     'solver': 'Euler',
 }
-env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters, rand_target=False)
-env._max_episode_steps = 2000
+env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters, rand_target=False)
+env._max_episode_steps = 5000
 env = LowLevelPPOPolicy(env, 20)
 
 # Run the simulation for a certain number of steps
 truncated = False
 terminated = False
 
-for episode in range(1, 10 + 1):
+for episode in range(1, 100 + 1):
     # Reset the environment to get the initial observation
     observation, info = env.reset()
     action = env.action_space.sample()  # Example action

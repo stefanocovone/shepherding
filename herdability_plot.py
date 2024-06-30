@@ -21,22 +21,22 @@ axs[0].set_xticks(ticks=[x-2 for x in specific_ticks])  # Adjust the ticks to ma
 axs[0].set_xticklabels(specific_ticks)
 axs[0].set_yticks(ticks=[x-2 for x in specific_ticks])  # Adjust the ticks to match the range index
 axs[0].set_yticklabels(specific_ticks)
-axs[0].set_xlabel(r'$M$', fontsize=16)
+axs[0].set_xlabel(r'$\sqrt{M}$', fontsize=16)
 axs[0].set_ylabel(r'$N$', fontsize=16)
 
 # Add a white line to demarcate the boundary for chi_rule
 contour1 = axs[0].contour(chi_rule, levels=[0.99], colors='white', linewidths=2)
 axs[0].clabel(contour1, fmt='%1.1f', colors='white', fontsize=12)
-
-# Extract the contour line data for chi_rule using allsegs
-contour1_coords = np.vstack(contour1.allsegs[0])
-x_contour1, y_contour1 = contour1_coords[:, 0], contour1_coords[:, 1]
-
-# Fit a linear regression to the contour line data for chi_rule
-m_rule, q_rule = np.polyfit(x_contour1, y_contour1, 1)
-axs[0].plot(x_contour1, m_rule * x_contour1 + q_rule, color='black', linestyle='--', linewidth=2,
-            label=f'y = {m_rule:.2f}x + {q_rule:.2f}')
-axs[0].legend()
+#
+# # Extract the contour line data for chi_rule using allsegs
+# contour1_coords = np.vstack(contour1.allsegs[0])
+# x_contour1, y_contour1 = contour1_coords[:, 0], contour1_coords[:, 1]
+#
+# # Fit a linear regression to the contour line data for chi_rule
+# m_rule, q_rule = np.polyfit(x_contour1, y_contour1, 1)
+# axs[0].plot(x_contour1, m_rule * x_contour1 + q_rule, color='black', linestyle='--', linewidth=2,
+#             label=f'y = {m_rule:.2f}x + {q_rule:.2f}')
+# axs[0].legend()
 
 # Plot chi_learning in the second subplot with interpolation
 im2 = axs[1].imshow(chi_learning, origin='lower', cmap='jet', aspect='equal', interpolation='bilinear')
@@ -51,16 +51,16 @@ axs[1].set_ylabel(r'$N$', fontsize=16)
 # Add a white line to demarcate the boundary for chi_learning
 contour2 = axs[1].contour(chi_learning, levels=[0.99], colors='white', linewidths=2)
 axs[1].clabel(contour2, fmt='%1.1f', colors='white', fontsize=12)
-
-# Extract the contour line data for chi_learning using allsegs
-contour2_coords = np.vstack(contour2.allsegs[0])
-x_contour2, y_contour2 = contour2_coords[:, 0], contour2_coords[:, 1]
-
-# Fit a linear regression to the contour line data for chi_learning
-m_learning, q_learning = np.polyfit(x_contour2, y_contour2, 1)
-axs[1].plot(x_contour2, m_learning * x_contour2 + q_learning, color='black', linestyle='--', linewidth=2,
-            label=f'y = {m_learning:.2f}x + {q_learning:.2f}')
-axs[1].legend()
+#
+# # Extract the contour line data for chi_learning using allsegs
+# contour2_coords = np.vstack(contour2.allsegs[0])
+# x_contour2, y_contour2 = contour2_coords[:, 0], contour2_coords[:, 1]
+#
+# # Fit a linear regression to the contour line data for chi_learning
+# m_learning, q_learning = np.polyfit(x_contour2, y_contour2, 1)
+# axs[1].plot(x_contour2, m_learning * x_contour2 + q_learning, color='black', linestyle='--', linewidth=2,
+#             label=f'y = {m_learning:.2f}x + {q_learning:.2f}')
+# axs[1].legend()
 
 # Create a common colorbar
 cbar = fig.colorbar(im1, ax=axs, orientation='vertical', fraction=0.02, pad=0.04)

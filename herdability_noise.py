@@ -19,7 +19,7 @@ base_parameters = {
 use_learning = True
 
 # Range of noise levels (log10 D) and targets
-noise_levels = np.arange(-2, 1.1, 0.1)
+noise_levels = np.arange(-2, 0.1, 0.1)
 targets_range = range(1, 21)
 
 # Initialize a numpy array to store the average chi values

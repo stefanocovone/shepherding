@@ -4,10 +4,10 @@ from shepherding.utils.control_rules import select_targets
 
 parameters = {
     'num_herders': 1,
-    'num_targets': 3,
+    'num_targets': 7,
     'num_targets_min': 2,
     'num_targets_max': 7,
-    'noise_strength': 1,
+    'noise_strength': .1,
     'rho_g': 5,
     'region_length': 50,
     'xi': 1000,
@@ -17,7 +17,7 @@ parameters = {
     'simulation_dt': 0.001,
     'solver': 'Euler',
 }
-env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters, rand_target=True)
+env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters, rand_target=False)
 env._max_episode_steps = 2000
 env = LowLevelPPOPolicy(env, 20)
 

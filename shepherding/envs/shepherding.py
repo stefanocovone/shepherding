@@ -133,7 +133,7 @@ class ShepherdingEnv(gym.Env):
 
     def _compute_reward(self, target_radii, k_t):
         distance_from_goal = target_radii - self.rho_g
-        reward_vector = np.where(distance_from_goal < 0, -20, distance_from_goal)
+        reward_vector = np.where(distance_from_goal < 0, -1, distance_from_goal)
         reward = -np.sum(reward_vector) / 100
         return reward
 

@@ -35,7 +35,7 @@ for herder_idx, num_herders in enumerate(herders_range):
 
         # Create the environment with the updated parameters
         env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters)
-        env._max_episode_steps = 1000*20
+        env._max_episode_steps = 5000*20
         env = TerminateWhenSuccessful(env)
         if use_learning:
             env = LowLevelPPOPolicy(env, update_frequency=1)
@@ -44,7 +44,7 @@ for herder_idx, num_herders in enumerate(herders_range):
         chi_list = []
 
         # Run 50 simulations
-        for episode in range(1, 1 + 1):
+        for episode in range(1, 50 + 1):
             # Reset the environment to get the initial observation
             observation, info = env.reset(seed=episode)
             step = 0

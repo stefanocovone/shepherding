@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def select_targets(env, observation):
@@ -138,3 +139,53 @@ def herder_actions(env, observation):
 
     return actions
 
+
+import numpy as np
+import torch
+
+def select_targets_learning(env, observation, model):
+    # Assuming observation is a numpy array and env.num_herders is the number of herders
+    # xi is the distance threshold, v_h is the herder velocity scalar, alpha and delta are given parameters
+    xi = env.xi
+
+    # Extract herder and target positions from the observation
+    herder_pos = observation[0:env.num_herders, :]  # Shape (N, 2)
+    target_pos = observation[env.num_herders:, :]  # Shape (M, 2)
+
+    num_targets = target_pos.shape[0]
+
+    if num_targets < 7:
+        # Pad target_pos with [0, 0] to ensure there are at least 7 targets
+        padding = np.zeros((7 - num_targets, 2))
+        target_pos = np.vstack((target_pos, padding))
+
+    # Calculate the distances from each herder to each target
+    distances = np.linalg.norm(herder_pos[:, np.newaxis, :] - target_pos[np.newaxis, :, :], axis=2)  # Shape (N, M)
+
+    # Get the indices of the 7 closest targets for each herder
+    closest_indices = np.argsort(distances, axis=1)[:, :7]  # Shape (N, 7)
+
+    # Sort the indices of the closest targets to match the original order
+    sorted_indices = np.sort(closest_indices, axis=1)
+
+    # Prepare the input vector for the model
+    herders_repeated = np.repeat(herder_pos, 7, axis=0).reshape(-1, 2)  # Shape (N*7, 2)
+    closest_targets = target_pos[sorted_indices].reshape(env.num_herders, -1)  # Shape (N, 7, 2) -> Shape (N, 14)
+
+    inputs = np.hstack((herder_pos, closest_targets))  # Shape (N, 16)
+
+    # Convert inputs to tensor
+    inputs_tensor = torch.tensor(inputs, dtype=torch.float32)
+
+    # Get actions from the model
+    with torch.no_grad():
+        selected_targets = model.get_action(inputs_tensor)
+
+    selected_targets = selected_targets.cpu().numpy()  # Shape (N, 1)
+
+    # Map the selected targets onto the sorted_indices
+    final_selected_targets = np.zeros(env.num_herders, dtype=int)
+    for i in range(env.num_herders):
+        final_selected_targets[i] = sorted_indices[i, selected_targets[i]]
+
+    return final_selected_targets

@@ -1,19 +1,17 @@
 import gymnasium as gym
 from shepherding.wrappers import LowLevelPPOPolicy
-from shepherding.utils.control_rules import select_targets, select_targets_learning
+from shepherding.utils.control_rules import select_targets
 from shepherding.utils import ActorCriticDiscrete
-
-use_learning = True
 
 parameters = {
     'num_herders': 1,
-    'num_targets': 7,
+    'num_targets': 5,
     'num_targets_min': 2,
     'num_targets_max': 7,
-    'noise_strength': 1,
+    'noise_strength': .1,
     'rho_g': 5,
     'region_length': 50,
-    'xi': 2000,
+    'xi': 1000,
     'dt': 0.05,
     'k_T': 3,
     'k_rep': 100,
@@ -21,10 +19,10 @@ parameters = {
     'solver': 'Euler',
 }
 env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters, rand_target=False)
-env._max_episode_steps = 2000
-env = LowLevelPPOPolicy(env, 1)
+env._max_episode_steps = 5000
+env = LowLevelPPOPolicy(env, 20)
 
-model = ActorCriticDiscrete.ActorCritic()
+select_action = ActorCriticDiscrete.ActorCritic()
 
 # Run the simulation for a certain number of steps
 truncated = False
@@ -42,10 +40,7 @@ for episode in range(1, 100 + 1):
     while not (terminated or truncated):
 
         step += 1
-        if use_learning:
-            action = select_targets_learning(env, observation, model)
-        else:
-            action = select_targets(env, observation)
+        action = select_targets(env, observation)
         # action = env.action_space.sample()  # Example action
         # Take a episode_step in the environment by applying the chosen action
         observation, reward, terminated, truncated, _ = env.step(action)

@@ -16,7 +16,7 @@ class ActorCritic(nn.Module):
     def __init__(self):
         super(ActorCritic, self).__init__()
 
-        self.device = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         obs_shape = 4
         action_shape = 2
 
@@ -55,7 +55,7 @@ class ActorCritic(nn.Module):
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         model_path = os.path.join(current_dir, 'PPO_params.pt')
-        self.load_state_dict(torch.load(model_path))
+        self.load_state_dict(torch.load(model_path, map_location=torch.device(self.device)))
 
     def get_value(self, x):
         return self.critic(x)

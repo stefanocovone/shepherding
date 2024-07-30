@@ -9,7 +9,7 @@ from gymnasium import spaces, Wrapper
 
 
 class ShepherdingEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 200}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 20}
 
     def __init__(self, render_mode: Optional[str] = None, parameters=None,
                  compute_reward: bool = True, rand_target: bool = False):

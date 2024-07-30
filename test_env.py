@@ -4,8 +4,8 @@ from shepherding.utils.control_rules import herder_actions
 
 
 parameters = {
-    'num_herders': 20,
-    'num_targets': 20*20,
+    'num_herders': 1,
+    'num_targets': 1,
     'noise_strength': 1,
     'rho_g': 5,
     'region_length': 50,
@@ -16,8 +16,8 @@ parameters = {
     'simulation_dt': 0.01,
     'solver': 'Euler',
 }
-env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters)
-env._max_episode_steps = 100000
+env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
+env._max_episode_steps = 1000
 env = TerminateWhenSuccessful(env)
 
 # Run the simulation for a certain number of steps

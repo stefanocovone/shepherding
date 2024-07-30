@@ -84,7 +84,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 # Save the average chi array to a file
 if use_learning:
-    output_file = os.path.join(output_dir, 'chi_noise_learning.npy')
+    output_file = os.path.join(output_dir, 'chi_noise_learning_old.npy')
 else:
     output_file = os.path.join(output_dir, 'chi_noise_rule.npy')
 np.save(output_file, average_chi_array)

@@ -21,9 +21,13 @@ class LowLevelPPOPolicy(Wrapper):
         # Define the update frequency
         self.update_frequency = update_frequency
 
+        self.obs_batch = np.zeros(shape=((self.update_frequency,) + self.observation_space.shape))
+
     def step(self, action):
 
         cumulative_reward = 0
+
+        self.obs_batch = np.zeros(shape=((self.update_frequency,) + self.observation_space.shape))
         for step in range(self.update_frequency):
 
             # Prepare batched inputs for the neural network
@@ -56,10 +60,19 @@ class LowLevelPPOPolicy(Wrapper):
             obs, reward, terminated, truncated, info = self.env.step(batched_herder_actions)
             cumulative_reward += reward
 
+            self.obs_batch[step] = obs
+
             if terminated or truncated:
                 break
+
+        info = self._get_info(info)
 
         obs = obs / self.env.unwrapped.region_length
         reward = cumulative_reward
 
         return obs, reward, terminated, truncated, info
+
+    def _get_info(self, info):
+        info['obs_batch'] = self.obs_batch
+        return info
+

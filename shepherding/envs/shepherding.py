@@ -35,12 +35,14 @@ class ShepherdingEnv(gym.Env):
             self.parameters.update(parameters)
 
         self.num_targets = self.parameters['num_targets']
+        self.num_targets_min = self.parameters['num_targets_min']
+        self.num_targets_max = self.parameters['num_targets_max']
         if rand_target:
-            self.num_targets_min = self.parameters['num_targets_min']
-            self.num_targets_max = self.parameters['num_targets_max']
+            self.num_targets_min_rand = self.parameters['num_targets_min']
+            self.num_targets_max_rand = self.parameters['num_targets_max']
         else:
-            self.num_targets_min = self.num_targets
-            self.num_targets_max = self.num_targets
+            self.num_targets_min_rand = self.num_targets
+            self.num_targets_max_rand = self.num_targets
 
         self.noise_strength = self.parameters['noise_strength']
         self.k_T = self.parameters['k_T']
@@ -79,7 +81,7 @@ class ShepherdingEnv(gym.Env):
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed)
 
-        self.num_targets = self.np_random.integers(self.num_targets_min, self.num_targets_max + 1)
+        self.num_targets = self.np_random.integers(self.num_targets_min_rand, self.num_targets_max_rand + 1)
 
         all_positions = self._random_positions(self.num_herders + self.num_targets)
         self.herder_pos = all_positions[:self.num_herders]

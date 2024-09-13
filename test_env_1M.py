@@ -50,7 +50,7 @@ for episode in range(1, 1 + 1):
             action = select_targets(env, observation)
         # action = env.action_space.sample()  # Example action
         # Take a episode_step in the environment by applying the chosen action
-        observation, reward, terminated, truncated, _ = env.step(action)
+        observation, reward, terminated, truncated, info = env.step(action)
         cum_reward += reward
 
     print("episode: ", episode, "reward: ", cum_reward)

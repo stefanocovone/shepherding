@@ -7,3 +7,5 @@
 /videos/
 /simulations/
 /herdability_results/
+/runs
+/shepherding/envs/__pycache__

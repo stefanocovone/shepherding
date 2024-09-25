@@ -38,7 +38,7 @@ max_episode_steps = 2000
 num_envs = 1  # Number of parallel environments
 device = 'cpu'
 
-env = gym.make('Shepherding-v0', render_mode='rgb_array', parameters=parameters, rand_target=False)
+env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters, rand_target=False)
 env._max_episode_steps = max_episode_steps
 # env = RecordVideo(env, video_folder="videos")
 env = LowLevelPPOPolicy(env, 20)

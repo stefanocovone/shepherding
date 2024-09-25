@@ -115,7 +115,7 @@ class ShepherdingEnv(gym.Env):
         self.episode_step += 1
 
         target_radii = np.linalg.norm(self.target_pos, axis=1)
-        reward = self._compute_reward(target_radii, k_t=200) if self.compute_reward else 0.0
+        reward = self._compute_reward(target_radii, k_5=0.01, k_p=5) if self.compute_reward else 0.0
         terminated = False
         truncated = False
 
@@ -133,10 +133,10 @@ class ShepherdingEnv(gym.Env):
 
         return self._get_obs(), reward, terminated, truncated, info
 
-    def _compute_reward(self, target_radii, k_t):
+    def _compute_reward(self, target_radii, k_5, k_p):
         distance_from_goal = target_radii - self.rho_g
-        reward_vector = np.where(distance_from_goal < 0, -1, distance_from_goal)
-        reward = -np.sum(reward_vector) / 100
+        reward_vector = np.where(distance_from_goal < 0, -k_p, distance_from_goal)
+        reward = -np.sum(reward_vector) * k_5
         return reward
 
     def _repulsion(self):

@@ -16,7 +16,7 @@ import torch
 
 
 def _random_positions(num_agents):
-    radius = np.random.uniform(0.6, 0.9, num_agents)
+    radius = np.random.uniform(0.6, 0.8, num_agents)
     angle = np.random.uniform(0, 2 * np.pi, num_agents)
     x = radius * np.cos(angle)
     y = radius * np.sin(angle)
@@ -46,19 +46,20 @@ lmbda = 2.5 * scaling_rate
 herder_max_vel = 8
 
 # define episode length
+# num_steps = 5000
 num_steps = 5000
 
 # Set initial conditions
 # initial_conditions = np.array(np.asmatrix('1 0.5 -0.5 0 0.28 0.6 -.2; 0.8 -0.3 -0.75 0.1 0.34 0.6 -.2; 0 0 0 0 0 0 0'))
-# initial_conditions =generate_initial_conditions(N=num_agents, width=2, height=2, spacing=0.4)
-initial_conditions = _random_positions(num_agents)
-# initial_conditions = np.array(np.asmatrix('0.5 0.5 -0.5 0.7 -0.6 0.9 -0.9; 0.5 -0.5 0.5 -0.7 -0.6 0.5 0.5; 0 0 0 0 0 0 0'))
+initial_conditions =generate_initial_conditions(N=num_agents, width=2.8, height=1.8, spacing=0.3)
+# initial_conditions = _random_positions(num_agents)
+# initial_conditions = np.array(np.asmatrix('0.6 0.7 -0.7 -0.5 -1.3 1.3; 0.4 -0.6 0.8 -0.5 -0.8 0.8; 0 0 0 0 0 0'))
 
 # Instantiate Robotarium object
 r = robotarium.Robotarium(number_of_robots=num_agents, show_figure=True, initial_conditions=initial_conditions, sim_in_real_time=False)
 
 # Create barrier certificates to avoid collision
-si_barrier_cert = create_single_integrator_barrier_certificate_with_boundary(safety_radius=0.15, boundary_points=np.array([-1.6, 1.6, -1, 1]))
+si_barrier_cert = create_single_integrator_barrier_certificate_with_boundary(safety_radius=0.15, boundary_points=np.array([-1.4, 1.4, -0.9, 0.9]))
 
 _, uni_to_si_states = create_si_to_uni_mapping()
 
@@ -137,12 +138,12 @@ for step in range(num_steps):
 
 
     # Target selection rule
-    if (step % 50) == 0:
+    if (step % 20) == 0:
         # Rule-based target selection
-        # selected_targets = select_targets(herder_pos, target_pos, num_herders, num_targets)
+        selected_targets = select_targets(herder_pos, target_pos, num_herders, num_targets)
         # Learning-based target selection
         selected_targets = select_targets_learning(herder_pos, target_pos, num_herders, num_targets, modelL2)
-
+        print(selected_targets)
 
     # Assuming action is a NumPy array of integers
     selected_targets = np.array(selected_targets)

@@ -9,7 +9,7 @@ from gymnasium import spaces, Wrapper
 
 
 class ShepherdingEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 20}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 200}
 
     def __init__(self, render_mode: Optional[str] = None, parameters=None,
                  compute_reward: bool = True, rand_target: bool = False):
@@ -29,6 +29,11 @@ class ShepherdingEnv(gym.Env):
             'max_steps': 2000,
             'dt': 0.05,
             'rho_g': 10,
+            # reward params
+            'k_R': 0.01,
+            'k_p': 5,
+            'k_all': 0,
+            'k_chi': 0,
         }
 
         if parameters is not None:
@@ -55,6 +60,11 @@ class ShepherdingEnv(gym.Env):
         self.max_steps = self.parameters['max_steps']
         self.dt = self.parameters['dt']
         self.rho_g = self.parameters['rho_g']
+
+        self.k_R = self.parameters['k_R']
+        self.k_p = self.parameters['k_p']
+        self.k_all = self.parameters['k_all']
+        self.k_chi = self.parameters['k_chi']
 
         self.num_agents = self.num_herders + self.num_targets_max
 
@@ -109,13 +119,16 @@ class ShepherdingEnv(gym.Env):
         self.target_pos_new = np.clip(self.target_pos + noise + repulsion, -self.region_length / 2,
                                       self.region_length / 2)
 
+        self.herder_pos_old = self.herder_pos
+        self.target_pos_old = self.target_pos
+
         self.herder_pos = self.herder_pos_new
         self.target_pos = self.target_pos_new
 
         self.episode_step += 1
 
         target_radii = np.linalg.norm(self.target_pos, axis=1)
-        reward = self._compute_reward(target_radii, k_5=0.01, k_p=5) if self.compute_reward else 0.0
+        reward = self._compute_reward(target_radii) if self.compute_reward else 0.0
         terminated = False
         truncated = False
 
@@ -133,10 +146,16 @@ class ShepherdingEnv(gym.Env):
 
         return self._get_obs(), reward, terminated, truncated, info
 
-    def _compute_reward(self, target_radii, k_5, k_p):
+    def _compute_reward(self, target_radii):
         distance_from_goal = target_radii - self.rho_g
-        reward_vector = np.where(distance_from_goal < 0, -k_p, distance_from_goal)
-        reward = -np.sum(reward_vector) * k_5
+        reward_vector = np.where(distance_from_goal < 0, self.k_p, distance_from_goal)
+
+        if max(distance_from_goal) < self.rho_g:
+            prize_all = self.k_all
+        else:
+            prize_all = 0
+
+        reward = -np.sum(reward_vector) * self.k_R + prize_all + self.k_chi * self.chi
         return reward
 
     def _repulsion(self):

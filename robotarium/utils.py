@@ -161,8 +161,9 @@ def select_targets_learning(herder_pos, target_pos, num_herders, num_targets, mo
 
     inputs = np.hstack((herder_pos, closest_targets))  # Shape (N, 16)
 
-    inputs = np.vstack((herder_pos, target_pos)).reshape(-1).reshape(1,18)  # Shape (N+M, 2)
-    inputs = inputs * 10
+    # inputs = np.vstack((herder_pos, target_pos)).reshape(-1).reshape(1,18)  # Shape (N+M, 2)
+    inputs = np.vstack((herder_pos, target_pos)).flatten()  # Shape (N+M, 2)
+    inputs = (inputs[np.newaxis, :] / 5)
 
     # Convert inputs to tensor
     inputs_tensor = torch.tensor(inputs, dtype=torch.float32)

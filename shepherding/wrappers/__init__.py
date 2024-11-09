@@ -3,3 +3,4 @@ from shepherding.wrappers.flatten_action import FlattenAction
 from shepherding.wrappers.deterministic_reset import DeterministicReset
 from shepherding.wrappers.low_level_ppo_policy import LowLevelPPOPolicy
 from shepherding.wrappers.terminate_when_success import TerminateWhenSuccessful
+from shepherding.wrappers.multi_agent_ppo import MultiAgentPPO

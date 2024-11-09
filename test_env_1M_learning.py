@@ -1,13 +1,13 @@
 import gymnasium as gym
-from shepherding.wrappers import LowLevelPPOPolicy
+from shepherding.wrappers import MultiAgentPPO
 from shepherding.utils.control_rules import select_targets
 from shepherding.utils import ActorCriticDiscrete
 
 parameters = {
-    'num_herders': 1,
+    'num_herders': 2,
     'num_targets': 5,
     'num_targets_min': 2,
-    'num_targets_max': 7,
+    'num_targets_max': 5,
     'noise_strength': .1,
     'rho_g': 5,
     'region_length': 50,
@@ -20,7 +20,7 @@ parameters = {
 }
 env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters, rand_target=False)
 env._max_episode_steps = 5000
-env = LowLevelPPOPolicy(env, 20)
+env = MultiAgentPPO(env, 20)
 
 select_action = ActorCriticDiscrete.ActorCritic()
 
@@ -40,8 +40,8 @@ for episode in range(1, 100 + 1):
     while not (terminated or truncated):
 
         step += 1
-        action = select_targets(env, observation)
-        # action = env.action_space.sample()  # Example action
+        # action = select_targets(env, observation)
+        action = env.action_space.sample()  # Example action
         # Take a episode_step in the environment by applying the chosen action
         observation, reward, terminated, truncated, _ = env.step(action)
         cum_reward += reward

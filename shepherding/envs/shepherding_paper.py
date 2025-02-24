@@ -129,7 +129,7 @@ class ShepherdingEnv(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
 
-        return self._get_obs(), reward.squeeze(), terminated, truncated, info
+        return self._get_obs(), reward, terminated, truncated, info
 
     def _compute_reward(self, target_radii, k_t):
         distance_from_goal = target_radii - self.rho_g

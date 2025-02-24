@@ -17,4 +17,4 @@ class FlattenAction(ActionWrapper):
 
     def action(self, action):
         N = int(self.env.action_space.shape[0] / 2)
-        return np.reshape(action, (self.env.num_herders, 2))  # Reshape to (N, 2)
+        return np.reshape(action, (self.env.unwrapped.num_herders, 2))  # Reshape to (N, 2)

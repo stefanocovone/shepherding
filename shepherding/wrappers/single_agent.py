@@ -40,4 +40,4 @@ class SingleAgentReward(Wrapper):
         if target_distance < self.env.unwrapped.rho_g:
             reward += self.k_3
 
-        return reward
+        return reward.squeeze()

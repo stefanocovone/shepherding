@@ -16,9 +16,9 @@ parameters = {
     'simulation_dt': 0.01,
     'solver': 'Euler',
 }
-env = gym.make('Shepherding-v0', render_mode='human', parameters=parameters)
-env._max_episode_steps = 1000
-env = TerminateWhenSuccessful(env)
+env = gym.make('Shepherding-v0', render_mode=None, parameters=parameters)
+env._max_episode_steps = 1200
+# env = TerminateWhenSuccessful(env, num_steps=500)
 
 # Run the simulation for a certain number of steps
 truncated = False
@@ -40,8 +40,9 @@ for episode in range(1, 50 + 1):
         observation, reward, terminated, truncated, info = env.step(action)
         cum_reward += reward
         chi = max(info["fraction_captured_targets"], chi)
+        settling_time = info['settling_time']
 
-    print("episode: ", episode, "chi: ", chi, "success: ", terminated, "reward: ", cum_reward)
+    print("episode: ", episode, "settling_time: ", settling_time, "success: ", terminated, "reward: ", cum_reward)
 
 # Close the environment (optional)
 env.close()

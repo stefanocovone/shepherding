@@ -166,7 +166,10 @@ class ShepherdingEnv(gym.Env):
                 "fraction_captured_targets": self.chi}
 
     def _random_positions(self, num_agents):
-        radius = self.np_random.uniform(self.rho_g + 1, 0.9 * self.region_length / 2, num_agents)
+        # radius = self.np_random.uniform(self.rho_g + 1, 0.9 * self.region_length / 2, num_agents)
+        max_radius = 23
+        min_radius = 6
+        radius = np.sqrt(np.random.uniform(0, 1, num_agents) * (max_radius ** 2 - min_radius ** 2) + min_radius ** 2)
         angle = self.np_random.uniform(0, 2 * np.pi, num_agents)
         x = radius * np.cos(angle)
         y = radius * np.sin(angle)

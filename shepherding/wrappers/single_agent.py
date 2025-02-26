@@ -13,6 +13,19 @@ class SingleAgentReward(Wrapper):
         self.k_3 = k_3
         self.k_4 = k_4
 
+    def reset(self, **kwargs):
+        # Reset the environment and retrieve the initial observation and info
+        _, info = self.env.reset(**kwargs)
+
+        target_pos = self.env.unwrapped.target_pos
+        herder_pos = self.env.unwrapped.herder_pos
+        diff_pos = - herder_pos + target_pos
+
+        obs = np.array([diff_pos, target_pos]) / self.env.unwrapped.region_length
+        # obs = np.array([diff_pos, target_pos])
+
+        return obs, info
+
     def step(self, action):
         _, _, terminated, truncated, info = self.env.step(action)
         reward = self._compute_reward()
@@ -22,6 +35,7 @@ class SingleAgentReward(Wrapper):
         diff_pos = - herder_pos + target_pos
 
         obs = np.array([diff_pos, target_pos])/self.env.unwrapped.region_length
+        # obs = np.array([diff_pos, target_pos])
 
         return obs, reward, terminated, truncated, info
 
